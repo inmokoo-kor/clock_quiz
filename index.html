@@ -2,32 +2,51 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 모바일 앱처럼 화면 꽉 차게 맞추고 더블터치 확대 방지 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>시계 퀴즈</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .clock { width: 200px; height: 200px; border: 8px solid #333; border-radius: 50%; position: relative; margin: 0 auto; background: white; }
-        .center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 12px; height: 12px; background: #333; border-radius: 50%; z-index: 10; }
-        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; background: #333; border-radius: 4px; transition: transform 0.5s cubic-bezier(0.4, 2.0, 0.2, 1); }
-        .hour-hand { width: 6px; height: 50px; margin-left: -3px; background: #2563eb; }
-        .minute-hand { width: 4px; height: 80px; margin-left: -2px; background: #ef4444; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
+        body { background-color: #eff6ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .container { background: white; padding: 30px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { font-size: 22px; color: #1f2937; margin-bottom: 24px; font-weight: bold; }
+        
+        /* 시계 디자인 */
+        .clock { width: 180px; height: 180px; border: 8px solid #374151; border-radius: 50%; position: relative; margin: 0 auto 30px; background: #ffffff; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
+        .center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: #374151; border-radius: 50%; z-index: 10; }
+        .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 4px; transition: transform 0.4s cubic-bezier(0.4, 2.0, 0.2, 1); }
+        .hour-hand { width: 6px; height: 45px; margin-left: -3px; background: #2563eb; z-index: 8; }
+        .minute-hand { width: 4px; height: 75px; margin-left: -2px; background: #ef4444; z-index: 9; }
+        
+        /* 버튼 및 텍스트 디자인 */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+        .option-btn { background: #f3f4f6; color: #1f2937; border: 2px solid transparent; padding: 16px 8px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: all 0.2s; word-break: keep-all; touch-action: manipulation; }
+        .option-btn:active { transform: scale(0.97); }
+        .option-btn.correct { background: #dcfce7; border-color: #22c55e; color: #15803d; }
+        .option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
+        
+        .result-text { font-size: 18px; font-weight: bold; min-height: 54px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; word-break: keep-all; padding: 0 10px; line-height: 1.4; }
+        .text-green { color: #22c55e; }
+        .text-red { color: #ef4444; }
+        
+        .next-btn { background: #3b82f6; color: white; border: none; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 12px; width: 100%; cursor: pointer; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); transition: background 0.2s; touch-action: manipulation; }
+        .next-btn:active { background: #2563eb; transform: translateY(2px); box-shadow: none; }
     </style>
 </head>
-<body class="bg-blue-50 flex items-center justify-center min-h-screen">
-    <div class="bg-white p-8 rounded-2xl shadow-lg text-center max-w-md w-full mx-4">
-        <h1 class="text-2xl font-bold mb-6 text-gray-800">지금은 몇 시일까요?</h1>
-        <div class="clock mb-8">
+<body>
+    <div class="container">
+        <h1>지금은 몇 시일까요?</h1>
+        <div class="clock">
             <div class="center-dot"></div>
             <div class="hand hour-hand" id="hourHand"></div>
             <div class="hand minute-hand" id="minuteHand"></div>
         </div>
-        <div id="options" class="grid grid-cols-2 gap-4 mb-6"></div>
-        <div id="result" class="text-xl font-bold h-8 mb-4"></div>
-        <button onclick="generateQuiz()" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-6 rounded-lg w-full transition">다음 문제</button>
+        <div id="options" class="options-grid"></div>
+        <div id="result" class="result-text"></div>
+        <button onclick="generateQuiz()" class="next-btn">다음 문제</button>
     </div>
 
     <script>
-        // 무작위 응원 메시지 리스트 (20가지)
         const cheeringMessages = [
             "우와! 정답이야! 진짜 잘하는데? 🎉",
             "최고! 시계 박사님이네! 🎓",
@@ -65,6 +84,7 @@
 
         function generateQuiz() {
             document.getElementById('result').innerText = "";
+            document.getElementById('result').className = "result-text";
             const optionsContainer = document.getElementById('options');
             optionsContainer.innerHTML = "";
 
@@ -73,7 +93,6 @@
             
             currentTimeText = formatTimeText(h, m);
 
-            // 시계 바늘 각도 계산
             let hourAngle = (h % 12) * 30 + (m * 0.5);
             let minuteAngle = m * 6;
             document.getElementById('hourHand').style.transform = `rotate(${hourAngle}deg)`;
@@ -87,12 +106,11 @@
                 if(!options.includes(wrongText)) options.push(wrongText);
             }
 
-            // 보기 섞기
             options.sort(() => Math.random() - 0.5);
 
             options.forEach(opt => {
                 let btn = document.createElement('button');
-                btn.className = "bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg border-2 border-transparent focus:outline-none transition";
+                btn.className = "option-btn";
                 btn.innerText = opt;
                 btn.onclick = () => checkAnswer(opt, btn);
                 optionsContainer.appendChild(btn);
@@ -101,19 +119,18 @@
 
         function checkAnswer(selected, btn) {
             const resultDiv = document.getElementById('result');
-            const buttons = document.querySelectorAll('#options button');
+            const buttons = document.querySelectorAll('.option-btn');
             
             if (selected === currentTimeText) {
                 const randomMsg = cheeringMessages[Math.floor(Math.random() * cheeringMessages.length)];
                 resultDiv.innerText = randomMsg;
-                resultDiv.className = "text-xl font-bold h-8 mb-4 text-green-500 break-keep";
-                btn.classList.add('border-green-500', 'bg-green-50');
-                // 정답을 맞추면 다른 버튼 비활성화
+                resultDiv.classList.add('text-green');
+                btn.classList.add('correct');
                 buttons.forEach(b => b.disabled = true);
             } else {
                 resultDiv.innerText = "앗, 다시 한 번 잘 볼까? 🤔";
-                resultDiv.className = "text-xl font-bold h-8 mb-4 text-red-500 break-keep";
-                btn.classList.add('border-red-500', 'bg-red-50');
+                resultDiv.classList.add('text-red');
+                btn.classList.add('wrong');
             }
         }
 
