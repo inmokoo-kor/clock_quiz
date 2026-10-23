@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>시계 읽기 퀴즈 - Time Reading Quiz</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Jua', sans-serif; /* 귀여운 폰트 적용 */
+            background-color: #f0fdf4;
+            background-image: radial-gradient(#bbf7d0 2px, transparent 2px);
+            background-size: 30px 30px;
+        }
+        
+        /* 시계 관련 스타일 */
+        .clock-face {
+            background: white;
+            box-shadow: 
+                0 0 0 12px #fbbf24,
+                0 10px 25px -5px rgba(0, 0, 0, 0.2);
+        }
+        
+        .number {
+            position: absolute;
+            font-size: 1.5rem;
+            color: #374151;
+            transform: translate(-50%, -50%);
+        }
+
+        .hand {
+            transition: transform 0.5s cubic-bezier(0.4, 2.0, 0.2, 1); /* 바운스 효과 추가 */
+        }
+
+        .btn-option {
+            transition: all 0.2s;
+        }
+        .btn-option:active {
+            transform: scale(0.95);
+        }
+        
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+
+    <div class="max-w-md w-full bg-white/90 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-4 border-yellow-300 text-center">
+        <!-- 헤더 및 점수 -->
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-3xl font-bold text-orange-500 drop-shadow-sm">지금 몇 시일까요?</h1>
+            <div class="bg-blue-100 text-blue-700 px-4 py-2 rounded-xl text-xl font-bold shadow-inner">
+                점수: <span id="score-display">0</span> / <span id="total-display">0</span>
+            </div>
+        </div>
+
+        <!-- 시계 캔버스 (HTML/CSS) -->
+        <div class="relative w-64 h-64 rounded-full mx-auto my-8 clock-face" id="clock">
+            <!-- 시계 중심점 -->
+            <div class="absolute top-1/2 left-1/2 w-4 h-4 bg-gray-800 rounded-full -translate-x-1/2 -translate-y-1/2 z-30 shadow-md"></div>
+            
+            <!-- 시침 -->
+            <div id="hour-hand" class="absolute bg-red-500 rounded-full z-20 hand" 
+                 style="width: 8px; height: 25%; bottom: 50%; left: calc(50% - 4px); transform-origin: bottom center; transform: rotate(0deg);">
+            </div>
+            
+            <!-- 분침 -->
+            <div id="minute-hand" class="absolute bg-blue-500 rounded-full z-10 hand" 
+                 style="width: 6px; height: 35%; bottom: 50%; left: calc(50% - 3px); transform-origin: bottom center; transform: rotate(0deg);">
+            </div>
+            
+            <!-- 시계 숫자 영역 (JS로 생성됨) -->
+            <div id="numbers-container"></div>
+        </div>
+
+        <!-- 피드백 메시지 -->
+        <div id="feedback-message" class="h-10 text-2xl font-bold mb-4 opacity-0 transition-opacity">
+            정답입니다! 🎉
+        </div>
+
+        <!-- 4지선다 버튼 -->
+        <div class="grid grid-cols-2 gap-4 mb-6" id="options-container">
+            <!-- 버튼들은 JS로 렌더링 됩니다 -->
+        </div>
+
+        <!-- 다음 문제 버튼 -->
+        <button id="next-btn" class="hidden w-full bg-purple-500 hover:bg-purple-600 text-white text-2xl py-4 rounded-2xl font-bold shadow-lg transition-colors btn-option">
+            다음 문제 🚀
+        </button>
+    </div>
+
+    <script>
+        // 전역 변수 설정
+        let currentHour = 0;
+        let currentMinute = 0;
+        let score = 0;
+        let totalQuestions = 0;
+        let options = [];
+        let hasAnswered = false;
+
+        // DOM 요소
+        const hourHand = document.getElementById('hour-hand');
+        const minuteHand = document.getElementById('minute-hand');
+        const numbersContainer = document.getElementById('numbers-container');
+        const optionsContainer = document.getElementById('options-container');
+        const feedbackMessage = document.getElementById('feedback-message');
+        const nextBtn = document.getElementById('next-btn');
+        const scoreDisplay = document.getElementById('score-display');
+        const totalDisplay = document.getElementById('total-display');
+
+        // 시계에 숫자(1~12) 그리기
+        function drawClockNumbers() {
+            const radius = 105; // 중심으로부터의 거리
+            for (let i = 1; i <= 12; i++) {
+                const angle = (i * 30 - 90) * (Math.PI / 180);
+                const x = 128 + radius * Math.cos(angle);
+                const y = 128 + radius * Math.sin(angle);
+                
+                const numEl = document.createElement('div');
+                numEl.className = 'number';
+                numEl.innerText = i;
+                numEl.style.left = `${x}px`;
+                numEl.style.top = `${y}px`;
+                numbersContainer.appendChild(numEl);
+            }
+        }
+
+        // 한국어 시간 읽기 포맷 생성기 (~시 ~분 전 반영)
+        function getKoreanTimeText(h, m) {
+            if (m === 0) {
+                return `${h}시`;
+            } else if (m <= 30) {
+                return `${h}시 ${m}분`;
+            } else {
+                // 30분을 초과할 경우 '~시 ~분 전' 포맷 사용
+                let nextHour = h + 1;
+                if (nextHour > 12) nextHour = 1;
+                let minsTo = 60 - m;
+                return `${nextHour}시 ${minsTo}분 전`;
+            }
+        }
+
+        // 퀴즈 초기화 및 새 문제 출제
+        function generateQuestion() {
+            hasAnswered = false;
+            feedbackMessage.style.opacity = '0';
+            nextBtn.classList.add('hidden');
+            
+            // 랜덤 시간 생성 (5분 단위)
+            currentHour = Math.floor(Math.random() * 12) + 1; // 1~12
+            currentMinute = Math.floor(Math.random() * 12) * 5; // 0, 5, 10 ... 55
+
+            // 시계 바늘 각도 계산 및 적용
+            const minuteAngle = currentMinute * 6;
+            const hourAngle = (currentHour % 12) * 30 + (currentMinute * 0.5);
+            
+            minuteHand.style.transform = `rotate(${minuteAngle}deg)`;
+            hourHand.style.transform = `rotate(${hourAngle}deg)`;
+
+            // 정답 생성
+            const correctTimeStr = getKoreanTimeText(currentHour, currentMinute);
+            
+            // 오답 생성
+            const wrongOptions = new Set();
+            while (wrongOptions.size < 3) {
+                let wrongHour = Math.floor(Math.random() * 12) + 1;
+                let wrongMinute = Math.floor(Math.random() * 12) * 5;
+                let wrongTimeStr = getKoreanTimeText(wrongHour, wrongMinute);
+                
+                if (wrongTimeStr !== correctTimeStr) {
+                    wrongOptions.add(wrongTimeStr);
+                }
+            }
+
+            // 보기 리스트 만들기 및 섞기(Shuffle)
+            options = [{ time: correctTimeStr, isCorrect: true }];
+            wrongOptions.forEach(opt => options.push({ time: opt, isCorrect: false }));
+            options.sort(() => Math.random() - 0.5);
+
+            renderOptions();
+        }
+
+        // 옵션 버튼 렌더링
+        function renderOptions() {
+            optionsContainer.innerHTML = '';
+            
+            options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = `btn-option bg-yellow-100 hover:bg-yellow-200 border-2 border-yellow-400 text-gray-800 text-2xl font-bold py-4 rounded-2xl shadow-sm focus:outline-none`;
+                btn.innerText = opt.time;
+                
+                btn.onclick = () => checkAnswer(opt.isCorrect, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        // 정답 확인 로직
+        function checkAnswer(isCorrect, clickedBtn) {
+            if (hasAnswered) return; // 이미 답변한 경우 무시
+            hasAnswered = true;
+            totalQuestions++;
+            
+            const buttons = optionsContainer.querySelectorAll('button');
+            
+            // 모든 버튼 상태 변경 및 비활성화
+            buttons.forEach((btn, index) => {
+                btn.disabled = true;
+                btn.classList.remove('hover:bg-yellow-200');
+                
+                if (options[index].isCorrect) {
+                    btn.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-gray-800');
+                    btn.classList.add('bg-green-500', 'text-white', 'border-green-600', 'scale-105', 'shadow-lg');
+                } else if (btn === clickedBtn) {
+                    // 내가 선택한 틀린 답
+                    btn.classList.remove('bg-yellow-100', 'border-yellow-400', 'text-gray-800');
+                    btn.classList.add('bg-red-500', 'text-white', 'border-red-600', 'shake');
+                } else {
+                    // 선택하지 않은 틀린 답은 투명도 낮추기
+                    btn.classList.add('opacity-50');
+                }
+            });
+
+            // 피드백 메시지 및 점수 업데이트
+            if (isCorrect) {
+                score++;
+                feedbackMessage.innerText = '정답입니다! 🎉';
+                feedbackMessage.className = 'h-10 text-2xl font-bold mb-4 transition-opacity text-green-500';
+            } else {
+                feedbackMessage.innerText = '앗, 다시 도전해봐요! 💪';
+                feedbackMessage.className = 'h-10 text-2xl font-bold mb-4 transition-opacity text-red-500';
+            }
+            feedbackMessage.style.opacity = '1';
+            
+            scoreDisplay.innerText = score;
+            totalDisplay.innerText = totalQuestions;
+
+            // 다음 문제 버튼 보이기
+            nextBtn.classList.remove('hidden');
+        }
+
+        // 이벤트 리스너
+        nextBtn.addEventListener('click', generateQuestion);
+
+        // 초기 설정
+        drawClockNumbers();
+        // 페이지 로드 시 바늘이 0시 위치에 있다가 애니메이션과 함께 움직이도록 약간 지연
+        setTimeout(generateQuestion, 300);
+
+    </script>
+</body>
+</html>
