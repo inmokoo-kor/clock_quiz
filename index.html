@@ -2,95 +2,96 @@
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
-    <!-- 모바일 앱처럼 화면 꽉 차게 맞추고 더블터치 확대 방지 -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>시계 퀴즈</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; }
-        body { background-color: #eff6ff; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
-        .container { background: white; padding: 30px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
-        h1 { font-size: 22px; color: #1f2937; margin-bottom: 24px; font-weight: bold; }
+        body { background-color: #f0fdf4; display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 20px; }
+        .container { background: white; border: 4px solid #fde047; padding: 30px 20px; border-radius: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
         
-        /* 시계 디자인 */
-        .clock { width: 180px; height: 180px; border: 8px solid #374151; border-radius: 50%; position: relative; margin: 0 auto 30px; background: #ffffff; box-shadow: inset 0 0 10px rgba(0,0,0,0.05); }
-        .center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: #374151; border-radius: 50%; z-index: 10; }
+        /* 상단 타이틀 및 점수판 */
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; padding: 0 10px; }
+        h1 { font-size: 20px; color: #ea580c; font-weight: bold; }
+        .score-box { background: #dbeafe; color: #1e3a8a; padding: 8px 16px; border-radius: 12px; font-weight: bold; font-size: 14px; }
+
+        /* 노란색 시계 디자인 복원 */
+        .clock { width: 220px; height: 220px; border: 12px solid #fbbf24; border-radius: 50%; position: relative; margin: 0 auto 30px; background: #ffffff; }
+        .center-dot { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; background: #1f2937; border-radius: 50%; z-index: 10; }
         .hand { position: absolute; bottom: 50%; left: 50%; transform-origin: bottom; border-radius: 4px; transition: transform 0.4s cubic-bezier(0.4, 2.0, 0.2, 1); }
-        .hour-hand { width: 6px; height: 45px; margin-left: -3px; background: #2563eb; z-index: 8; }
-        .minute-hand { width: 4px; height: 75px; margin-left: -2px; background: #ef4444; z-index: 9; }
-        
-        /* 버튼 및 텍스트 디자인 */
-        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
-        .option-btn { background: #f3f4f6; color: #1f2937; border: 2px solid transparent; padding: 16px 8px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; transition: all 0.2s; word-break: keep-all; touch-action: manipulation; }
+        .hour-hand { width: 6px; height: 55px; margin-left: -3px; background: #ef4444; z-index: 8; }
+        .minute-hand { width: 4px; height: 85px; margin-left: -2px; background: #3b82f6; z-index: 9; }
+        .number { position: absolute; font-size: 18px; font-weight: bold; color: #1f2937; transform: translate(-50%, -50%); }
+
+        /* 보기 버튼 및 텍스트 */
+        .options-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+        .option-btn { background: #fef08a; color: #1f2937; border: 2px solid #fde047; padding: 18px 8px; font-size: 16px; font-weight: bold; border-radius: 12px; cursor: pointer; touch-action: manipulation; transition: transform 0.1s; word-break: keep-all; }
         .option-btn:active { transform: scale(0.97); }
         .option-btn.correct { background: #dcfce7; border-color: #22c55e; color: #15803d; }
         .option-btn.wrong { background: #fee2e2; border-color: #ef4444; color: #b91c1c; }
-        
-        .result-text { font-size: 18px; font-weight: bold; min-height: 54px; margin-bottom: 20px; display: flex; align-items: center; justify-content: center; word-break: keep-all; padding: 0 10px; line-height: 1.4; }
-        .text-green { color: #22c55e; }
-        .text-red { color: #ef4444; }
-        
-        .next-btn { background: #3b82f6; color: white; border: none; padding: 16px; font-size: 18px; font-weight: bold; border-radius: 12px; width: 100%; cursor: pointer; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.3); transition: background 0.2s; touch-action: manipulation; }
-        .next-btn:active { background: #2563eb; transform: translateY(2px); box-shadow: none; }
+
+        .result-text { font-size: 16px; font-weight: bold; min-height: 48px; display: flex; align-items: center; justify-content: center; word-break: keep-all; line-height: 1.4; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>지금은 몇 시일까요?</h1>
-        <div class="clock">
+        <div class="header">
+            <h1>지금 몇 시일까요?</h1>
+            <div class="score-box" id="scoreDisplay">점수: 0 / 0</div>
+        </div>
+        <div class="clock" id="clockFace">
             <div class="center-dot"></div>
             <div class="hand hour-hand" id="hourHand"></div>
             <div class="hand minute-hand" id="minuteHand"></div>
         </div>
         <div id="options" class="options-grid"></div>
         <div id="result" class="result-text"></div>
-        <button onclick="generateQuiz()" class="next-btn">다음 문제</button>
     </div>
 
     <script>
+        // 시계 테두리에 1~12 숫자 배치
+        const clockFace = document.getElementById('clockFace');
+        for (let i = 1; i <= 12; i++) {
+            let num = document.createElement('div');
+            num.className = 'number';
+            num.innerText = i;
+            let angle = i * 30 * (Math.PI / 180);
+            let radius = 80; 
+            let x = 98 + radius * Math.sin(angle); 
+            let y = 98 - radius * Math.cos(angle);
+            num.style.left = `${x}px`;
+            num.style.top = `${y}px`;
+            clockFace.appendChild(num);
+        }
+
         const cheeringMessages = [
-            "우와! 정답이야! 진짜 잘하는데? 🎉",
-            "최고! 시계 박사님이네! 🎓",
-            "대단해! 완벽하게 맞췄어! 🌟",
-            "참 잘했어요! 다음 문제도 도전해볼까? 🚀",
-            "짝짝짝! 정답! 너무 멋져! 👏",
-            "와~ 천재 아냐?! 정답! ✨",
-            "대박! 시계 보기 너무 쉽지? 😆",
-            "훌륭해! 예인이 최고! 👧🏻💕",
-            "정답! 이대로 쭉쭉 가보자고! 🌈",
-            "딩동댕! 우리 예인이 진짜 똑똑하네! 🎊",
-            "와, 초등학교 2학년 언니는 역시 다르네! 완벽해! 🏫✨",
-            "교헌이도 옆에서 누나 최고라고 박수 짝짝짝! 👶🏻👏",
-            "아빠가 엄청 자랑스러워할 거야! 예인이 정답! 👨‍👧💕",
-            "예인아, 어항 속 구피들도 꼬리 치며 축하해 주고 있어! 🐟💦",
-            "퍼펙트! 눈썰미가 엄청난걸? 👀✨",
-            "앗, 눈부셔! 정답의 빛이 반짝반짝! 💫",
-            "정답! 예인이 미소처럼 기분 좋은 결과야! 🥰",
-            "눈 깜짝할 새 맞췄네! 최고! 💖",
-            "딩동댕! 예인이의 시계 실력이 쑥쑥 크고 있어! 🌱",
-            "와우! 정말 대단해! 백점 만점에 천점! 💯"
+            "우와! 정답이야! 진짜 잘하는데? 🎉", "최고! 시계 박사님이네! 🎓", "대단해! 완벽하게 맞췄어! 🌟", "참 잘했어요! 다음 문제도 도전해볼까? 🚀",
+            "짝짝짝! 정답! 너무 멋져! 👏", "와~ 천재 아냐?! 정답! ✨", "대박! 시계 보기 너무 쉽지? 😆", "훌륭해! 예인이 최고! 👧🏻💕",
+            "정답! 이대로 쭉쭉 가보자고! 🌈", "딩동댕! 우리 예인이 진짜 똑똑하네! 🎊", "와, 초등학교 2학년 언니는 역시 다르네! 완벽해! 🏫✨",
+            "교헌이도 옆에서 누나 최고라고 박수 짝짝짝! 👶🏻👏", "아빠가 엄청 자랑스러워할 거야! 예인이 정답! 👨‍👧💕", "예인아, 어항 속 구피들도 꼬리 치며 축하해 주고 있어! 🐟💦",
+            "퍼펙트! 눈썰미가 엄청난걸? 👀✨", "앗, 눈부셔! 정답의 빛이 반짝반짝! 💫", "정답! 예인이 미소처럼 기분 좋은 결과야! 🥰",
+            "눈 깜짝할 새 맞췄네! 최고! 💖", "딩동댕! 예인이의 시계 실력이 쑥쑥 크고 있어! 🌱", "와우! 정말 대단해! 백점 만점에 천점! 💯"
         ];
 
         let currentTimeText = "";
+        let correctCount = 0;
+        let totalCount = 0;
 
         function formatTimeText(h, m) {
             if (m === 0) return `${h}시 정각`;
             if (m > 30) {
                 let nextHour = h === 12 ? 1 : h + 1;
-                let minsTo = 60 - m;
-                return `${nextHour}시 ${minsTo}분 전`;
+                return `${nextHour}시 ${60 - m}분 전`;
             }
             return `${h}시 ${m}분`;
         }
 
         function generateQuiz() {
             document.getElementById('result').innerText = "";
-            document.getElementById('result').className = "result-text";
             const optionsContainer = document.getElementById('options');
             optionsContainer.innerHTML = "";
 
             let h = Math.floor(Math.random() * 12) + 1;
             let m = Math.floor(Math.random() * 12) * 5; 
-            
             currentTimeText = formatTimeText(h, m);
 
             let hourAngle = (h % 12) * 30 + (m * 0.5);
@@ -105,7 +106,6 @@
                 let wrongText = formatTimeText(wrongH, wrongM);
                 if(!options.includes(wrongText)) options.push(wrongText);
             }
-
             options.sort(() => Math.random() - 0.5);
 
             options.forEach(opt => {
@@ -120,18 +120,22 @@
         function checkAnswer(selected, btn) {
             const resultDiv = document.getElementById('result');
             const buttons = document.querySelectorAll('.option-btn');
-            
+            totalCount++;
+
             if (selected === currentTimeText) {
+                correctCount++;
                 const randomMsg = cheeringMessages[Math.floor(Math.random() * cheeringMessages.length)];
                 resultDiv.innerText = randomMsg;
-                resultDiv.classList.add('text-green');
+                resultDiv.style.color = "#22c55e";
                 btn.classList.add('correct');
                 buttons.forEach(b => b.disabled = true);
+                setTimeout(generateQuiz, 2000); 
             } else {
                 resultDiv.innerText = "앗, 다시 한 번 잘 볼까? 🤔";
-                resultDiv.classList.add('text-red');
+                resultDiv.style.color = "#ef4444";
                 btn.classList.add('wrong');
             }
+            document.getElementById('scoreDisplay').innerText = `점수: ${correctCount} / ${totalCount}`;
         }
 
         generateQuiz();
